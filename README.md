@@ -1,22 +1,14 @@
-# Clubbr — Zero-build static site
+# Clubbr — Zero-build HTML app
 
-This repo is ready to deploy on Netlify without running any build.
+Single-file HTML + JS + CSS app with a logo. No build step required.
 
-- `index.html` (tiny shim) redirects to `index_real.html`
-- `index_real.html` is the full app (vanilla JS)
-- `netlify.toml` sets publish directory to the repo root and **no build command**
-- `_redirects` ensures SPA routing
+## Deploy on Netlify (Git)
+1. Push these files to a GitHub repo (root level).
+2. On Netlify: Add new site → Import from Git.
+3. Build settings: leave **Build command** empty. Leave **Publish directory** empty (Netlify will read `netlify.toml` → publish `.`).
 
-## Deploy (Git Import)
+## Drag-and-drop
+1. Zip the folder contents and drag to Netlify → Deploys → Deploy a site.
+2. Or drag the unzipped folder directly.
 
-1. Push these files to a GitHub repo (at repo root).
-2. On Netlify → Add new site → Import from Git.
-3. Confirm:
-   - Build command: _empty_
-   - Publish directory: _empty_ (Netlify reads from `netlify.toml` → `.`)
-
-If an older configuration still points to `dist/`, go to **Site settings → Build & deploy**, set **Publish directory** blank, and click **Save**. Then trigger a redeploy from the latest commit.
-
-## Deploy (drag & drop)
-Drag this entire folder onto Netlify Deploys → Deploy a site (no build).
-
+The app stores your edited bag distances in `localStorage` under the key `clubbr_bag`.

@@ -2,7 +2,6 @@
   publish = "."
   command = ""
 
-# Serve SPA for any path
 [[redirects]]
   from = "/*"
   to = "/index.html"
