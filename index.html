@@ -1,12 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Clubbr — Golf Club Selector</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clubbr — Golf Club Selector</title>
+  <style>
+    body{font-family:Arial, sans-serif; background:#f8fafc; margin:0; padding:20px; color:#111827}
+    .container{max-width:960px; margin:0 auto}
+    .card{background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:16px; margin-bottom:16px}
+    h1{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:bold}
+    img.logo{height:80px;width:80px;border-radius:16px;object-fit:cover}
+    label{font-size:14px; display:block; margin-top:8px}
+    input[type=number], input[type=range]{width:100%}
+    button{padding:8px 12px; border-radius:12px; border:1px solid #e5e7eb; cursor:pointer}
+    .primary{background:#10b981;color:#fff;border:none}
+    .grid{display:grid; gap:12px}
+    .grid-2{grid-template-columns:1fr 1fr}
+    .grid-3{grid-template-columns:1fr 1fr 1fr}
+    .kpi{background:#f1f5f9; border-radius:12px; padding:12px}
+    .alt{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px}
+    .footer{text-align:center; font-size:12px; color:#6b7280; margin-top:12px}
+    .arrow-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+    .arrow{padding:10px 0;text-align:center;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer}
+    .arrow.active{background:#000;color:#fff}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><img src="logo.png" class="logo"/> Clubbr — Golf Club Selector</h1>
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>Shot</h2>
+        <label>Target distance (m)</label>
+        <input type="number" id="inp-distance" value="150"/>
+        <label>Elevation change (m)</label>
+        <input type="range" id="inp-elev" min="-30" max="30" value="0"/>
+        <div id="elev-label">0 m (+ uphill)</div>
+      </div>
+      <div class="card">
+        <h2>Wind</h2>
+        <p style="font-size:12px;color:#6b7280">Arrows show the way the wind is blowing. You are hitting toward the TOP of the screen.</p>
+        <div class="arrow-grid" id="wind-grid"></div>
+        <label>Speed (m/s)</label>
+        <input type="range" id="inp-wind" min="0" max="20" value="0"/>
+        <div id="wind-speed">0 m/s</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Effective Yardage</h2>
+      <button id="recalc" class="primary">Recalculate</button>
+      <div class="grid grid-3">
+        <div class="kpi"><div>Raw distance</div><div id="raw-dist">150 m</div></div>
+        <div class="kpi"><div>Wind adjustment</div><div id="wind-adj">0 m</div></div>
+        <div class="kpi"><div>Elevation adjustment</div><div id="elev-adj">0 m</div></div>
+      </div>
+      <div>Plays as <b id="plays-as">150 m</b></div>
+    </div>
+    <div class="card">
+      <h2>Recommendation</h2>
+      <div id="warn-long" style="display:none;color:red">Shot longer than your longest club.</div>
+      <div id="primary"></div>
+      <div id="alts"></div>
+    </div>
+    <div class="footer">Inspired by Hemmi</div>
+  </div>
+<script>
+const DEFAULT_BAG=[{key:"driver",label:"Driver",carry:250},{key:"5w",label:"5 Wood",carry:220},{key:"4i",label:"4 Iron",carry:200},{key:"5i",label:"5 Iron",carry:180},{key:"6i",label:"6 Iron",carry:170},{key:"7i",label:"7 Iron",carry:150},{key:"8i",label:"8 Iron",carry:140},{key:"9i",label:"9 Iron",carry:130},{key:"p",label:"Pitching Wedge (P)",carry:120},{key:"48",label:"48° Wedge",carry:100},{key:"56",label:"56° Wedge",carry:80}];
+const WIND_DIRECTIONS=[{code:"N",label:"Headwind",thetaDeg:0,arrow:"↓"},{code:"NE",label:"Headwind / L→R",thetaDeg:45,arrow:"↘"},{code:"E",label:"Left → Right",thetaDeg:90,arrow:"→"},{code:"SE",label:"Tailwind / L→R",thetaDeg:135,arrow:"↗"},{code:"S",label:"Tailwind",thetaDeg:180,arrow:"↑"},{code:"SW",label:"Tailwind / R→L",thetaDeg:225,arrow:"↖"},{code:"W",label:"Right → Left",thetaDeg:270,arrow:"←"},{code:"NW",label:"Headwind / R→L",thetaDeg:315,arrow:"↙"}];
+let distance=150,elevation=0,windSpeed=0,windDir="N";
+function toRad(d){return d*Math.PI/180}function clamp(n,a,b){return Math.max(a,Math.min(b,n))}function fmt(m){return Math.round(m)+" m"}
+function forceLabel(p){if(p<65)return"very smooth";if(p<80)return"smooth";if(p<95)return"normal";if(p<105)return"firm";return"all out"}
+const inpDist=document.getElementById("inp-distance"),inpElev=document.getElementById("inp-elev"),inpWind=document.getElementById("inp-wind");
+const elevLabel=document.getElementById("elev-label"),windLbl=document.getElementById("wind-speed");inpElev.oninput=()=>{let v=+inpElev.value;elevLabel.textContent=v+" m ("+(v>=0?"+ uphill":"- downhill")+")"};inpWind.oninput=()=>{windLbl.textContent=inpWind.value+" m/s"};
+const windGrid=document.getElementById("wind-grid");let windDirInput="N";WIND_DIRECTIONS.forEach(d=>{let b=document.createElement("div");b.className="arrow";b.textContent=d.arrow;b.onclick=()=>{document.querySelectorAll(".arrow").forEach(a=>a.classList.remove("active"));b.classList.add("active");windDirInput=d.code};windGrid.appendChild(b)});windGrid.firstChild.classList.add("active");
+function compute(){const along=windSpeed*Math.cos(toRad(WIND_DIRECTIONS.find(w=>w.code===windDir).thetaDeg));const windPct=along>=0?along*0.008:along*(-0.005);const windAdj=distance*windPct;const elevAdj=elevation>=0?elevation*1.25:elevation*1.0;const eff=Math.max(0,distance+windAdj+elevAdj);document.getElementById("raw-dist").textContent=fmt(distance);document.getElementById("wind-adj").textContent=(windAdj>=0?"+":"")+fmt(windAdj);document.getElementById("elev-adj").textContent=(elevAdj>=0?"+":"")+fmt(elevAdj);document.getElementById("plays-as").textContent=fmt(eff);const sorted=[...DEFAULT_BAG].sort((a,b)=>a.carry-b.carry);let primary=sorted.find(c=>c.carry>=eff)||sorted[sorted.length-1];let swing=clamp(eff/primary.carry*100,50,115);document.getElementById("primary").innerHTML=`<div><b>${primary.label}</b> — ${Math.round(swing)}% (${forceLabel(swing)})<br/>Carry ${fmt(primary.carry)}</div>`;let idx=sorted.findIndex(c=>c.key===primary.key);let altDown=sorted[idx-1],altUp=sorted[idx+1];let alts="";[altDown,altUp].forEach(alt=>{if(!alt)return;let s=clamp(eff/alt.carry*100,50,115);alts+=`<div class='alt'><b>${alt.label}</b> — ${Math.round(s)}% (${forceLabel(s)})<br/>Carry ${fmt(alt.carry)}</div>`});document.getElementById("alts").innerHTML=alts;document.getElementById("warn-long").style.display=eff>sorted[sorted.length-1].carry?"block":"none"}
+document.getElementById("recalc").onclick=()=>{distance=+inpDist.value;elevation=+inpElev.value;windSpeed=+inpWind.value;windDir=windDirInput;compute()}
+compute();
+</script>
+</body>
 </html>
