@@ -61,7 +61,7 @@
 
       <div class="card">
         <h2>Wind</h2>
-        <p class="muted" style="margin-top:-4px">Arrows show the way the wind is blowing. You are hitting toward the <b>TOP</b> of the screen.</p>
+        <p class="muted" style="margin-top:-4px">Arrows show <b>where the wind is coming from</b>. You are hitting toward the <b>TOP</b> of the screen. (↓ = headwind, ↑ = tailwind)</p>
         <label>Direction</label>
         <div class="arrow-grid" id="wind-grid"></div>
         <label style="margin-top:8px">Speed (m/s)</label>
@@ -138,14 +138,14 @@
   ];
 
   const WIND_DIRECTIONS = [
-    { code: "N", label: "Headwind", thetaDeg: 0, arrow: "↓" },
-    { code: "NE", label: "Headwind / L→R", thetaDeg: 45, arrow: "↘" },
-    { code: "E", label: "Left → Right", thetaDeg: 90, arrow: "→" },
-    { code: "SE", label: "Tailwind / L→R", thetaDeg: 135, arrow: "↗" },
-    { code: "S", label: "Tailwind", thetaDeg: 180, arrow: "↑" },
-    { code: "SW", label: "Tailwind / R→L", thetaDeg: 225, arrow: "↖" },
-    { code: "W", label: "Right → Left", thetaDeg: 270, arrow: "←" },
-    { code: "NW", label: "Headwind / R→L", thetaDeg: 315, arrow: "↙" },
+    { code: "N",  label: "Headwind (↓ from target)", thetaDeg: 0,   arrow: "↓" },
+    { code: "NE", label: "Headwind / L→R",           thetaDeg: 45,  arrow: "↘" },
+    { code: "E",  label: "Left → Right cross",        thetaDeg: 90,  arrow: "→" },
+    { code: "SE", label: "Tailwind / L→R",            thetaDeg: 135, arrow: "↗" },
+    { code: "S",  label: "Tailwind (↑ toward target)",thetaDeg: 180, arrow: "↑" },
+    { code: "SW", label: "Tailwind / R→L",            thetaDeg: 225, arrow: "↖" },
+    { code: "W",  label: "Right → Left cross",        thetaDeg: 270, arrow: "←" },
+    { code: "NW", label: "Headwind / R→L",            thetaDeg: 315, arrow: "↙" },
   ];
 
   // State (committed)
@@ -242,7 +242,7 @@
 
   // Constants
   const HEADWIND_PCT_PER_MPS = 0.008;
-  const TAILWIND_PCT_PER_MPS = -0.005;
+  const TAILWIND_PCT_PER_MPS = 0.005;
   const UPHILL_M_PER_M = 1.25;
   const DOWNHILL_M_PER_M = 1.0;
 
@@ -253,9 +253,10 @@
 
   function compute() {
     const theta = currentWindTheta();
-    const along = windSpeed * Math.cos(toRadians(theta)); // + headwind, - tailwind
-    const windPct = along >= 0 ? along * HEADWIND_PCT_PER_MPS : along * TAILWIND_PCT_PER_MPS;
-    const windAdjVal = distance * windPct;
+    const along = windSpeed * Math.cos(toRadians(theta)); // + headwind, - tailwind // + headwind, - tailwind
+    const head = Math.max(0, along);
+    const tail = Math.max(0, -along);
+    const windAdjVal = distance * (head * HEADWIND_PCT_PER_MPS - tail * TAILWIND_PCT_PER_MPS);
     const elevAdjVal = elevation >= 0 ? elevation * UPHILL_M_PER_M : elevation * DOWNHILL_M_PER_M;
     const eff = Math.max(0, distance + windAdjVal + elevAdjVal);
 
